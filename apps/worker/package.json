@@ -1,0 +1,25 @@
+{
+  "name": "@algor/worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@algor/db": "workspace:*",
+    "@algor/shared": "workspace:*",
+    "@algor/connectors": "workspace:*",
+    "bullmq": "^5.1.5",
+    "ioredis": "^5.3.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.0"
+  }
+}
+

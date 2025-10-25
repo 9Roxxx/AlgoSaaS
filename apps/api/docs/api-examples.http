@@ -1,0 +1,191 @@
+### Algor Orchestrator API Examples
+### Используйте REST Client расширение в VS Code
+
+@baseUrl = http://localhost:3001/api/v1
+@token = your_jwt_token_here
+
+### 1. Signup (Регистрация)
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "email": "partner@example.com",
+  "password": "password123",
+  "tenantName": "Алгоритмика Казань"
+}
+
+### 2. Login (Вход)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@algoritmika.demo",
+  "password": "admin123"
+}
+
+### 3. Get Current Tenant
+GET {{baseUrl}}/tenants/current
+Authorization: Bearer {{token}}
+
+### 4. List Contacts
+GET {{baseUrl}}/contacts?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### 5. Create Contact
+POST {{baseUrl}}/contacts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "phone": "+79161234567",
+  "email": "test@example.com",
+  "city": "Москва",
+  "childAge": 10,
+  "interests": {
+    "tracks": ["python"]
+  }
+}
+
+### 6. Import Contacts (CSV)
+POST {{baseUrl}}/contacts/import
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "csvData": "phone,email,city,childAge\n+79161234567,test1@example.com,Москва,9\n+79167654321,test2@example.com,СПб,11"
+}
+
+### 7. Create Consent
+POST {{baseUrl}}/consents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contactId": "contact_id_here",
+  "channel": "TELEGRAM",
+  "scope": "PROMO",
+  "source": "TG_START",
+  "policyVersion": "2024-01",
+  "proofUrl": "https://example.com/proof.png"
+}
+
+### 8. Add to Suppression List
+POST {{baseUrl}}/suppressions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contactId": "contact_id_here",
+  "channel": "EMAIL",
+  "reason": "user_request"
+}
+
+### 9. Create Template
+POST {{baseUrl}}/templates
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "channel": "TELEGRAM",
+  "name": "Пробный урок",
+  "body": "Привет, {{parent_name}}! Приглашаем на пробный урок {{track}}.",
+  "variables": ["parent_name", "track"],
+  "status": "APPROVED",
+  "category": "OFFER"
+}
+
+### 10. Render Template
+POST {{baseUrl}}/templates/{template_id}/render
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "variables": {
+    "parent_name": "Анна",
+    "track": "Python"
+  }
+}
+
+### 11. Create Segment
+POST {{baseUrl}}/segments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Москва, 9-12 лет",
+  "filterDsl": "{\"city\":\"Москва\",\"childAge\":{\"gte\":9,\"lte\":12}}"
+}
+
+### 12. Preview Segment
+GET {{baseUrl}}/segments/{segment_id}/preview
+Authorization: Bearer {{token}}
+
+### 13. Create Campaign
+POST {{baseUrl}}/campaigns
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Пробный урок Python - Декабрь 2024",
+  "channelPolicy": {
+    "priority": ["telegram", "email"]
+  }
+}
+
+### 14. Start Campaign
+POST {{baseUrl}}/campaigns/{campaign_id}/start
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "segmentId": "segment_id_here",
+  "templateIds": ["template_id_1", "template_id_2"],
+  "waveSize": 100
+}
+
+### 15. Get Campaign Metrics
+GET {{baseUrl}}/campaigns/{campaign_id}/metrics
+Authorization: Bearer {{token}}
+
+### 16. Upload Orchestration Policy (YAML)
+POST {{baseUrl}}/orchestration/rules
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "yaml": "channels:\n  priority: [telegram, email]\n  quiet_hours:\n    start: \"20:00\"\n    end: \"10:00\"\ncompliance:\n  require_opt_in: true"
+}
+
+### 17. Get Active Policy
+GET {{baseUrl}}/orchestration/policy
+Authorization: Bearer {{token}}
+
+### 18. Webhook - Telegram
+POST {{baseUrl}}/webhooks/telegram
+Content-Type: application/json
+
+{
+  "message": {
+    "message_id": 123,
+    "from": {
+      "id": 987654321
+    },
+    "text": "/start"
+  }
+}
+
+### 19. Webhook - CRM Event
+POST {{baseUrl}}/webhooks/crm
+Content-Type: application/json
+
+{
+  "event": "trial_booked",
+  "contactId": "contact_id_here",
+  "campaignId": "campaign_id_here",
+  "track": "Python",
+  "date": "2024-12-20"
+}
+
+### 20. Click Tracking (redirect)
+GET http://localhost:3001/api/v1/r/{message_id}/trial
+

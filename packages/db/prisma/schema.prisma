@@ -1,0 +1,384 @@
+// Algor Orchestrator - Prisma Schema
+// Multi-tenant messaging orchestration platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// TENANCY & AUTH
+// ============================================================================
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users               User[]
+  contacts            Contact[]
+  consents            Consent[]
+  suppressions        Suppress[]
+  templates           Template[]
+  campaigns           Campaign[]
+  segments            Segment[]
+  messages            Message[]
+  deliveries          Delivery[]
+  orchestrationRules  OrchestrationRule[]
+  clickEvents         ClickEvent[]
+  leadEvents          LeadEvent[]
+
+  @@index([status])
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  password  String // bcrypt hash
+  role      UserRole @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MARKETER
+  VIEWER
+}
+
+// ============================================================================
+// CONTACTS & CONSENT
+// ============================================================================
+
+model Contact {
+  id        String   @id @default(cuid())
+  tenantId  String
+  
+  // Каналы связи (encrypted в production через middleware)
+  phone     String?  // +7XXXXXXXXXX
+  tgId      String?  // Telegram user ID
+  vkUserId  String?  // VK user ID
+  email     String?
+  
+  // Профиль
+  city      String?
+  childAge  Int?
+  interests Json?    // { tracks: ["python", "scratch"], trialBooked: false }
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  consents     Consent[]
+  suppressions Suppress[]
+  messages     Message[]
+  clickEvents  ClickEvent[]
+  leadEvents   LeadEvent[]
+
+  @@unique([tenantId, phone])
+  @@unique([tenantId, email])
+  @@unique([tenantId, tgId])
+  @@unique([tenantId, vkUserId])
+  @@index([tenantId])
+  @@index([tenantId, city])
+  @@index([tenantId, childAge])
+  @@map("contacts")
+}
+
+model Consent {
+  id             String        @id @default(cuid())
+  tenantId       String
+  contactId      String
+  channel        Channel
+  scope          ConsentScope
+  source         ConsentSource
+  policyVersion  String        // e.g. "2024-01"
+  proofUrl       String?       // URL скриншота/записи согласия
+  createdAt      DateTime      @default(now())
+  revokedAt      DateTime?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, contactId, channel, scope])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([tenantId, contactId, channel])
+  @@map("consents")
+}
+
+enum Channel {
+  TELEGRAM
+  VK
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum ConsentScope {
+  PROMO      // Рекламные рассылки
+  SERVICE    // Сервисные уведомления
+}
+
+enum ConsentSource {
+  FORM       // Веб-форма
+  QR         // QR-код
+  C2WA       // Click-to-WhatsApp
+  TG_START   // /start в Telegram боте
+  VK_SUB     // Подписка на сообщество VK
+  IMPORT     // Массовый импорт
+}
+
+model Suppress {
+  id        String   @id @default(cuid())
+  tenantId  String
+  contactId String
+  channel   Channel? // null = глобальная отписка от всех каналов
+  reason    String   // "user_request", "complaint", "bounce", "keyword_stop"
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, contactId, channel])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([tenantId, contactId])
+  @@map("suppressions")
+}
+
+// ============================================================================
+// TEMPLATES & CAMPAIGNS
+// ============================================================================
+
+model Template {
+  id        String         @id @default(cuid())
+  tenantId  String
+  channel   Channel
+  name      String
+  version   Int            @default(1)
+  body      String         @db.Text // Liquid template: "Привет, {{parent_name}}!"
+  variables Json           // ["parent_name", "child_age", "track", "city", "slots"]
+  status    TemplateStatus @default(DRAFT)
+  category  TemplateCategory @default(VALUE_FIRST) // для антибан-логики WA
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([tenantId])
+  @@index([tenantId, channel])
+  @@index([tenantId, status])
+  @@map("templates")
+}
+
+enum TemplateStatus {
+  DRAFT
+  APPROVED
+  BLOCKED
+}
+
+enum TemplateCategory {
+  VALUE_FIRST  // Полезный контент
+  OFFER        // Коммерческое предложение
+  SERVICE      // Сервисное сообщение
+}
+
+model Campaign {
+  id            String         @id @default(cuid())
+  tenantId      String
+  name          String
+  status        CampaignStatus @default(DRAFT)
+  channelPolicy Json?          // Приоритет каналов, fallback rules
+  startAt       DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  clickEvents ClickEvent[]
+  leadEvents  LeadEvent[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([status])
+  @@map("campaigns")
+}
+
+enum CampaignStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  STOPPED
+  COMPLETED
+}
+
+model Segment {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  filterDsl String   @db.Text // SQL WHERE clause или JSON DSL
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("segments")
+}
+
+// ============================================================================
+// MESSAGES & DELIVERY
+// ============================================================================
+
+model Message {
+  id         String        @id @default(cuid())
+  tenantId   String
+  campaignId String
+  contactId  String
+  channel    Channel
+  templateId String
+  payload    Json          // Rendered variables: { parent_name: "Анна", ... }
+  dedupeKey  String        // tenantId:campaignId:contactId:channel для предотвращения дублей
+  status     MessageStatus @default(QUEUED)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaign    Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact     Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  template    Template     @relation(fields: [templateId], references: [id])
+  delivery    Delivery?
+  clickEvents ClickEvent[]
+
+  @@unique([dedupeKey])
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([tenantId, campaignId, status])
+  @@index([status])
+  @@map("messages")
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  CLICKED
+  UNDELIVERED
+  COMPLAINT
+  SUPPRESSED
+}
+
+model Delivery {
+  id             String    @id @default(cuid())
+  tenantId       String
+  messageId      String    @unique
+  providerMsgId  String?   // ID от провайдера (Telegram message_id, VK conversation_message_id, etc)
+  status         MessageStatus
+  errorCode      String?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  clickedAt      DateTime?
+  complaintAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([messageId])
+  @@index([providerMsgId])
+  @@map("deliveries")
+}
+
+// ============================================================================
+// ORCHESTRATION RULES
+// ============================================================================
+
+model OrchestrationRule {
+  id        String   @id @default(cuid())
+  tenantId  String
+  yaml      String   @db.Text
+  version   Int      @default(1)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@map("orchestration_rules")
+}
+
+// ============================================================================
+// ANALYTICS EVENTS (также дублируются в ClickHouse)
+// ============================================================================
+
+model ClickEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  contactId  String
+  campaignId String
+  messageId  String
+  url        String
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  message  Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([messageId])
+  @@index([createdAt])
+  @@map("click_events")
+}
+
+model LeadEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  contactId  String
+  campaignId String?
+  payload    Json     // { event: "trial_booked", track: "python", ... }
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([createdAt])
+  @@map("lead_events")
+}
+
