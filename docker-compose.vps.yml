@@ -1,0 +1,125 @@
+version: '3.8'
+
+# Оптимизированная конфигурация для VPS (1GB RAM, 1 CPU)
+# Убрали: ClickHouse, Mailhog, Admin (можно запустить отдельно)
+# Ограничили память для всех сервисов
+
+services:
+  # PostgreSQL с ограничениями
+  postgres:
+    image: postgres:16-alpine
+    container_name: algor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: algor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-algor123}
+      POSTGRES_DB: algor_orchestrator
+      # Оптимизация для 1GB RAM
+      POSTGRES_SHARED_BUFFERS: 128MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 256MB
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: 
+      - "postgres"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "effective_cache_size=256MB"
+      - "-c"
+      - "max_connections=50"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U algor']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis с ограничениями
+  redis:
+    image: redis:7-alpine
+    container_name: algor-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API (NestJS)
+  # Будет собран локально после клонирования
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.api
+  #   container_name: algor-api
+  #   restart: unless-stopped
+  #   ports:
+  #     - '3001:3001'
+  #   environment:
+  #     NODE_ENV: production
+  #     DATABASE_URL: postgresql://algor:${POSTGRES_PASSWORD:-algor123}@postgres:5432/algor_orchestrator?schema=public
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #     JWT_SECRET: ${JWT_SECRET}
+  #     API_PORT: 3001
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #       reservations:
+  #         memory: 128M
+
+  # Worker (BullMQ)
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.worker
+  #   container_name: algor-worker
+  #   restart: unless-stopped
+  #   environment:
+  #     NODE_ENV: production
+  #     DATABASE_URL: postgresql://algor:${POSTGRES_PASSWORD:-algor123}@postgres:5432/algor_orchestrator?schema=public
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #     WORKER_CONCURRENCY: 2
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #       reservations:
+  #         memory: 128M
+
+volumes:
+  postgres_data:
+  redis_data:
+
+# Сеть не нужна, используем default
+

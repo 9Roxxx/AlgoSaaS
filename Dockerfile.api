@@ -1,0 +1,63 @@
+# Multi-stage build для минимального размера
+FROM node:18-alpine AS builder
+
+# Установить pnpm
+RUN npm install -g pnpm@8
+
+WORKDIR /app
+
+# Копировать файлы зависимостей
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/db/package.json ./packages/db/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/connectors/package.json ./packages/connectors/
+COPY apps/api/package.json ./apps/api/
+
+# Установить зависимости
+RUN pnpm install --frozen-lockfile
+
+# Копировать исходный код
+COPY packages ./packages
+COPY apps/api ./apps/api
+COPY tsconfig.json ./
+
+# Сгенерировать Prisma Client
+RUN pnpm --filter @algor/db generate
+
+# Собрать API
+RUN pnpm --filter @algor/api build
+
+# Production образ
+FROM node:18-alpine
+
+RUN npm install -g pnpm@8
+
+WORKDIR /app
+
+# Копировать package.json для production install
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/db/package.json ./packages/db/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/connectors/package.json ./packages/connectors/
+COPY apps/api/package.json ./apps/api/
+
+# Установить только production зависимости
+RUN pnpm install --prod --frozen-lockfile
+
+# Копировать собранные файлы
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/packages ./packages
+
+# Копировать Prisma schema для миграций
+COPY packages/db/prisma ./packages/db/prisma
+
+WORKDIR /app/apps/api
+
+EXPOSE 3001
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+CMD ["node", "dist/main.js"]
+
