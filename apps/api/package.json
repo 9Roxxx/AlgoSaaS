@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
+    "dev:simple": "tsx src/simple-main.ts",
+    "dev:ultra": "tsx src/ultra-simple-main.ts",
+    "dev:telegram": "tsx src/real-telegram-main.ts",
     "build": "nest build",
     "start": "node dist/main",
     "typecheck": "tsc --noEmit",
@@ -11,39 +14,39 @@
     "lint": "eslint \"{src,test}/**/*.ts\""
   },
   "dependencies": {
+    "@algor/connectors": "workspace:*",
     "@algor/db": "workspace:*",
     "@algor/shared": "workspace:*",
-    "@algor/connectors": "workspace:*",
+    "@fastify/multipart": "^8.0.0",
+    "@fastify/static": "^6.12.0",
     "@nestjs/common": "^10.3.0",
     "@nestjs/core": "^10.3.0",
-    "@nestjs/platform-fastify": "^10.3.0",
-    "@nestjs/swagger": "^7.1.17",
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/passport": "^10.0.3",
-    "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1",
+    "@nestjs/platform-fastify": "^10.3.0",
+    "@nestjs/swagger": "^7.1.17",
     "bcryptjs": "^2.4.3",
-    "class-validator": "^0.14.0",
-    "class-transformer": "^0.5.1",
     "bullmq": "^5.1.5",
-    "ioredis": "^5.3.2",
-    "js-yaml": "^4.1.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
     "csv-parse": "^5.5.3",
     "fastify": "^4.25.2",
-    "@fastify/static": "^6.12.0",
-    "@fastify/multipart": "^8.0.0"
+    "ioredis": "^5.3.2",
+    "js-yaml": "^4.1.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.2.1",
     "@nestjs/schematics": "^10.0.3",
     "@nestjs/testing": "^10.3.0",
-    "@types/node": "^20.10.0",
     "@types/bcryptjs": "^2.4.6",
-    "@types/passport-jwt": "^4.0.0",
     "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.10.0",
+    "@types/passport-jwt": "^4.0.0",
+    "supertest": "^6.3.3",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "vitest": "^1.1.0",
-    "supertest": "^6.3.3"
+    "vitest": "^1.1.0"
   }
 }
-

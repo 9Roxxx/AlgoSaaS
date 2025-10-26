@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algor Orchestrator - Real System</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #374151;
+            margin-top: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        .card.telegram { border-color: #0088cc; }
+        .card.vk { border-color: #4c75a3; }
+        .card.email { border-color: #ea4335; }
+        .card.sms { border-color: #34a853; }
+        .card.whatsapp { border-color: #25d366; }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button.success {
+            background: #10b981;
+        }
+        button.warning {
+            background: #f59e0b;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .result {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        .loading {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-online { background: #10b981; }
+        .status-offline { background: #ef4444; }
+        .status-loading { background: #f59e0b; }
+        .config-section {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .config-section h3 {
+            margin: 0 0 10px 0;
+            color: #0c4a6e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Algor Orchestrator - Real System</h1>
+        
+        <div class="section">
+            <h2>⚙️ Configuration</h2>
+            <p>Настройте реальные токены и ключи для работы с внешними сервисами:</p>
+            
+            <div class="config-section">
+                <h3>📱 Telegram Bot</h3>
+                <input type="text" id="telegramToken" placeholder="Bot Token (1234567890:ABCdefGHIjklMNOpqrsTUVwxyz)">
+                <button onclick="testTelegramConfig()">Test Telegram</button>
+                <div id="telegramConfigResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="config-section">
+                <h3>📧 Email Provider</h3>
+                <select id="emailProvider">
+                    <option value="mailgun">Mailgun</option>
+                    <option value="sendgrid">SendGrid</option>
+                </select>
+                <input type="text" id="emailApiKey" placeholder="API Key">
+                <input type="text" id="emailDomain" placeholder="Domain (for Mailgun)">
+                <input type="email" id="emailFrom" placeholder="From Email" value="noreply@algoritmika.org">
+                <button onclick="testEmailConfig()">Test Email</button>
+                <div id="emailConfigResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="config-section">
+                <h3>📱 SMS Provider</h3>
+                <input type="text" id="smsProviderUrl" placeholder="Provider URL">
+                <input type="text" id="smsApiKey" placeholder="API Key">
+                <button onclick="testSMSConfig()">Test SMS</button>
+                <div id="smsConfigResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="config-section">
+                <h3>👥 VK Community</h3>
+                <input type="text" id="vkAccessToken" placeholder="Access Token">
+                <input type="text" id="vkGroupId" placeholder="Group ID">
+                <button onclick="testVKConfig()">Test VK</button>
+                <div id="vkConfigResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📱 Real Message Sending</h2>
+            <p>Отправляйте реальные сообщения через настроенные каналы:</p>
+            
+            <div class="grid">
+                <div class="card telegram">
+                    <h3>📱 Telegram</h3>
+                    <input type="text" id="tgRecipient" placeholder="Telegram ID или @username" value="@EternalDespairInTheSilence">
+                    <textarea id="tgMessage" placeholder="Сообщение">Привет! Это реальное сообщение из Algor Orchestrator 🚀</textarea>
+                    <button onclick="sendRealTelegram()">Отправить в Telegram</button>
+                    <div id="tgResult" class="result" style="display: none;"></div>
+                </div>
+
+                <div class="card vk">
+                    <h3>👥 VK</h3>
+                    <input type="text" id="vkRecipient" placeholder="VK User ID" value="123456789">
+                    <textarea id="vkMessage" placeholder="Сообщение">Привет! Это реальное сообщение из Algor Orchestrator 🚀</textarea>
+                    <button onclick="sendRealVK()">Отправить в VK</button>
+                    <div id="vkResult" class="result" style="display: none;"></div>
+                </div>
+
+                <div class="card email">
+                    <h3>📧 Email</h3>
+                    <input type="email" id="emailRecipient" placeholder="Email адрес" value="test@example.com">
+                    <textarea id="emailMessage" placeholder="Сообщение">Привет! Это реальное сообщение из Algor Orchestrator 🚀</textarea>
+                    <button onclick="sendRealEmail()">Отправить Email</button>
+                    <div id="emailResult" class="result" style="display: none;"></div>
+                </div>
+
+                <div class="card sms">
+                    <h3>📱 SMS</h3>
+                    <input type="tel" id="smsRecipient" placeholder="Номер телефона" value="+79001234567">
+                    <textarea id="smsMessage" placeholder="Сообщение">Привет! Это реальное SMS из Algor Orchestrator 🚀</textarea>
+                    <button onclick="sendRealSMS()">Отправить SMS</button>
+                    <div id="smsResult" class="result" style="display: none;"></div>
+                </div>
+
+                <div class="card whatsapp">
+                    <h3>💬 WhatsApp</h3>
+                    <input type="tel" id="waRecipient" placeholder="Номер телефона" value="+79001234567">
+                    <textarea id="waMessage" placeholder="Сообщение">Привет! Это реальное сообщение из Algor Orchestrator 🚀</textarea>
+                    <button onclick="sendRealWhatsApp()">Отправить WhatsApp</button>
+                    <button onclick="getWhatsAppLink()">Получить ссылку</button>
+                    <div id="waResult" class="result" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Channel Status</h2>
+            <p>Проверьте статус всех настроенных каналов:</p>
+            <button onclick="checkAllChannels()">Проверить все каналы</button>
+            <div id="channelsStatus" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>🎨 Template Rendering</h2>
+            <p>Тестируйте рендеринг шаблонов с переменными:</p>
+            <textarea id="templateContent" placeholder="Шаблон с переменными">Привет, {{parent_name}}! 👋
+
+Ваш ребенок {{child_age}} лет может начать изучать {{track}}! 🎓
+
+📅 Записаться на пробный урок: {{trial_link}}</textarea>
+            <textarea id="templateVariables" placeholder='{"parent_name": "Анна", "child_age": 10, "track": "Python", "trial_link": "https://algoritmika.org/trial"}'></textarea>
+            <button onclick="renderTemplate()">Рендерить шаблон</button>
+            <div id="templateResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Bulk Messaging</h2>
+            <p>Массовая рассылка по нескольким получателям:</p>
+            <select id="bulkChannel">
+                <option value="TELEGRAM">Telegram</option>
+                <option value="VK">VK</option>
+                <option value="EMAIL">Email</option>
+                <option value="SMS">SMS</option>
+                <option value="WHATSAPP">WhatsApp</option>
+            </select>
+            <textarea id="bulkRecipients" placeholder='[{"tgId": "123456789"}, {"email": "test@example.com"}, {"phone": "+79001234567"}]'></textarea>
+            <textarea id="bulkMessage" placeholder="Сообщение для массовой рассылки">Привет! Это массовая рассылка из Algor Orchestrator 🚀</textarea>
+            <button onclick="sendBulkMessages()">Отправить массово</button>
+            <div id="bulkResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api/v1';
+
+        async function testTelegramConfig() {
+            const token = document.getElementById('telegramToken').value;
+            const resultDiv = document.getElementById('telegramConfigResult');
+            
+            if (!token) {
+                resultDiv.textContent = '❌ Введите токен бота';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Проверяем токен Telegram...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    resultDiv.textContent = `✅ Бот настроен!\n\nИмя: ${data.result.first_name}\nUsername: @${data.result.username}\nID: ${data.result.id}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Ошибка: ${data.description}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function sendRealTelegram() {
+            const recipient = document.getElementById('tgRecipient').value;
+            const message = document.getElementById('tgMessage').value;
+            const resultDiv = document.getElementById('tgResult');
+            
+            if (!recipient || !message) {
+                resultDiv.textContent = '❌ Введите получателя и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Отправляем сообщение в Telegram...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channel: 'TELEGRAM',
+                        recipient: { tgId: recipient },
+                        content: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function sendRealVK() {
+            const recipient = document.getElementById('vkRecipient').value;
+            const message = document.getElementById('vkMessage').value;
+            const resultDiv = document.getElementById('vkResult');
+            
+            if (!recipient || !message) {
+                resultDiv.textContent = '❌ Введите получателя и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Отправляем сообщение в VK...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channel: 'VK',
+                        recipient: { vkUserId: recipient },
+                        content: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function sendRealEmail() {
+            const recipient = document.getElementById('emailRecipient').value;
+            const message = document.getElementById('emailMessage').value;
+            const resultDiv = document.getElementById('emailResult');
+            
+            if (!recipient || !message) {
+                resultDiv.textContent = '❌ Введите получателя и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Отправляем Email...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channel: 'EMAIL',
+                        recipient: { email: recipient },
+                        content: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function sendRealSMS() {
+            const recipient = document.getElementById('smsRecipient').value;
+            const message = document.getElementById('smsMessage').value;
+            const resultDiv = document.getElementById('smsResult');
+            
+            if (!recipient || !message) {
+                resultDiv.textContent = '❌ Введите получателя и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Отправляем SMS...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channel: 'SMS',
+                        recipient: { phone: recipient },
+                        content: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function sendRealWhatsApp() {
+            const recipient = document.getElementById('waRecipient').value;
+            const message = document.getElementById('waMessage').value;
+            const resultDiv = document.getElementById('waResult');
+            
+            if (!recipient || !message) {
+                resultDiv.textContent = '❌ Введите получателя и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Отправляем WhatsApp...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channel: 'WHATSAPP',
+                        recipient: { phone: recipient },
+                        content: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function getWhatsAppLink() {
+            const recipient = document.getElementById('waRecipient').value;
+            const message = document.getElementById('waMessage').value;
+            const resultDiv = document.getElementById('waResult');
+            
+            if (!recipient || !message) {
+                resultDiv.textContent = '❌ Введите получателя и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Генерируем ссылку WhatsApp...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/whatsapp/link`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone: recipient,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.textContent = `✅ Ссылка WhatsApp создана!\n\nСсылка: ${data.link}\n\nСкопируйте ссылку и отправьте пользователю через другой канал (SMS, Email)`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Ошибка: ${data.message}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function checkAllChannels() {
+            const resultDiv = document.getElementById('channelsStatus');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Проверяем статус всех каналов...';
+            resultDiv.className = 'result loading';
+            
+            const channels = ['TELEGRAM', 'VK', 'EMAIL', 'SMS', 'WHATSAPP'];
+            const results = [];
+            
+            for (const channel of channels) {
+                try {
+                    const response = await fetch(`${API_BASE}/messages/status/${channel}`);
+                    const data = await response.json();
+                    results.push({ channel, ...data });
+                } catch (error) {
+                    results.push({ channel, success: false, error: error.message });
+                }
+            }
+            
+            resultDiv.textContent = JSON.stringify(results, null, 2);
+            resultDiv.className = 'result success';
+        }
+
+        async function renderTemplate() {
+            const template = document.getElementById('templateContent').value;
+            const variablesText = document.getElementById('templateVariables').value;
+            const resultDiv = document.getElementById('templateResult');
+            
+            if (!template) {
+                resultDiv.textContent = '❌ Введите шаблон';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            let variables = {};
+            try {
+                variables = JSON.parse(variablesText || '{}');
+            } catch (e) {
+                resultDiv.textContent = '❌ Неверный формат JSON в переменных';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Рендерим шаблон...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/render-template`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ template, variables })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function sendBulkMessages() {
+            const channel = document.getElementById('bulkChannel').value;
+            const recipientsText = document.getElementById('bulkRecipients').value;
+            const message = document.getElementById('bulkMessage').value;
+            const resultDiv = document.getElementById('bulkResult');
+            
+            if (!recipientsText || !message) {
+                resultDiv.textContent = '❌ Введите получателей и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            let recipients = [];
+            try {
+                recipients = JSON.parse(recipientsText);
+            } catch (e) {
+                resultDiv.textContent = '❌ Неверный формат JSON в получателях';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Отправляем массовые сообщения...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/messages/bulk-send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channel: channel,
+                        recipients: recipients,
+                        content: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Автоматически проверяем статус каналов при загрузке
+        window.onload = function() {
+            checkAllChannels();
+        };
+    </script>
+</body>
+</html>

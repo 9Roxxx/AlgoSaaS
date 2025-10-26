@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algor Orchestrator - Real Bot Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #374151;
+            margin-top: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        .card.telegram { border-color: #0088cc; }
+        .card.contacts { border-color: #10b981; }
+        .card.templates { border-color: #f59e0b; }
+        .card.consents { border-color: #8b5cf6; }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button.success {
+            background: #10b981;
+        }
+        button.warning {
+            background: #f59e0b;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .result {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        .loading {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .contact-item, .template-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .contact-item h4, .template-item h4 {
+            margin: 0 0 10px 0;
+            color: #374151;
+        }
+        .contact-item .info, .template-item .info {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .step {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .step h3 {
+            margin: 0 0 10px 0;
+            color: #0c4a6e;
+        }
+        .step-number {
+            background: #0ea5e9;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Algor Orchestrator - Real Bot Demo</h1>
+        
+        <div class="section">
+            <h2>📋 Пошаговая настройка реального бота</h2>
+            
+            <div class="step">
+                <h3><span class="step-number">1</span>Создай Telegram бота</h3>
+                <p>1. Найди @BotFather в Telegram</p>
+                <p>2. Отправь команду <code>/newbot</code></p>
+                <p>3. Выбери имя: "Algor Test Bot"</p>
+                <p>4. Выбери username: "algor_test_bot"</p>
+                <p>5. Скопируй полученный токен</p>
+            </div>
+
+            <div class="step">
+                <h3><span class="step-number">2</span>Настрой бота в системе</h3>
+                <input type="text" id="botToken" placeholder="Вставь токен бота (1234567890:ABCdefGHIjklMNOpqrsTUVwxyz)">
+                <button onclick="setupBot()">Настроить бота</button>
+                <div id="botSetupResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="step">
+                <h3><span class="step-number">3</span>Добавь контакты</h3>
+                <p>Добавь контакты с Telegram ID для тестирования:</p>
+                <button onclick="loadContacts()">Загрузить демо контакты</button>
+                <button onclick="addContact()">Добавить новый контакт</button>
+                <div id="contactsResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="step">
+                <h3><span class="step-number">4</span>Создай шаблоны сообщений</h3>
+                <p>Создай шаблоны с переменными для персонализации:</p>
+                <button onclick="loadTemplates()">Загрузить демо шаблоны</button>
+                <button onclick="addTemplate()">Создать новый шаблон</button>
+                <div id="templatesResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="step">
+                <h3><span class="step-number">5</span>Получи согласия</h3>
+                <p>Получи согласия от пользователей на получение сообщений:</p>
+                <button onclick="loadConsents()">Загрузить согласия</button>
+                <button onclick="addConsent()">Добавить согласие</button>
+                <div id="consentsResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="step">
+                <h3><span class="step-number">6</span>Отправь реальное сообщение</h3>
+                <p>Отправь сообщение через настоящий Telegram бот:</p>
+                <input type="text" id="realChatId" placeholder="Chat ID получателя (например: 123456789)">
+                <textarea id="realMessage" placeholder="Текст сообщения">Привет! Это тестовое сообщение из Algor Orchestrator 🤖</textarea>
+                <button onclick="sendRealMessage()">Отправить через бота</button>
+                <div id="realMessageResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📱 Управление контактами</h2>
+            <div class="grid">
+                <div class="card contacts">
+                    <h3>👥 Контакты</h3>
+                    <div id="contactsList"></div>
+                </div>
+                <div class="card consents">
+                    <h3>✅ Согласия</h3>
+                    <div id="consentsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📝 Управление шаблонами</h2>
+            <div class="grid">
+                <div class="card templates">
+                    <h3>📄 Шаблоны</h3>
+                    <div id="templatesList"></div>
+                </div>
+                <div class="card">
+                    <h3>🎨 Рендеринг шаблона</h3>
+                    <select id="templateSelect">
+                        <option value="">Выбери шаблон</option>
+                    </select>
+                    <textarea id="templateVariables" placeholder='{"parent_name": "Анна", "child_age": 10}'></textarea>
+                    <button onclick="renderTemplate()">Рендерить шаблон</button>
+                    <div id="renderResult" class="result" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🚀 Массовая рассылка</h2>
+            <p>Создай кампанию для массовой рассылки:</p>
+            <select id="campaignTemplate">
+                <option value="template_1">Приветствие Python курс</option>
+                <option value="template_2">Напоминание о пробном уроке</option>
+                <option value="template_3">Email приветствие</option>
+            </select>
+            <button onclick="createCampaign()">Создать кампанию</button>
+            <div id="campaignResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api/v1';
+        let botToken = '';
+        let contacts = [];
+        let templates = [];
+        let consents = [];
+
+        async function setupBot() {
+            const token = document.getElementById('botToken').value;
+            const resultDiv = document.getElementById('botSetupResult');
+            
+            if (!token) {
+                resultDiv.textContent = '❌ Введите токен бота';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Настраиваем бота...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/demo/telegram/setup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ botToken: token })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    botToken = token;
+                    resultDiv.textContent = `✅ Бот настроен успешно!\n\n${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Ошибка: ${data.message}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function loadContacts() {
+            const resultDiv = document.getElementById('contactsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Загружаем контакты...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/demo/contacts`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    contacts = data.contacts;
+                    displayContacts();
+                    resultDiv.textContent = `✅ Загружено ${contacts.length} контактов`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Ошибка: ${data.message}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        function displayContacts() {
+            const container = document.getElementById('contactsList');
+            container.innerHTML = '';
+            
+            contacts.forEach(contact => {
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                div.innerHTML = `
+                    <h4>${contact.email || contact.phone}</h4>
+                    <div class="info">
+                        📱 Telegram: ${contact.tgId || 'Не указан'}<br>
+                        📧 Email: ${contact.email || 'Не указан'}<br>
+                        📍 Город: ${contact.city || 'Не указан'}<br>
+                        👶 Возраст ребенка: ${contact.childAge || 'Не указан'}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadTemplates() {
+            const resultDiv = document.getElementById('templatesResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Загружаем шаблоны...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/demo/templates`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    templates = data.templates;
+                    displayTemplates();
+                    updateTemplateSelect();
+                    resultDiv.textContent = `✅ Загружено ${templates.length} шаблонов`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Ошибка: ${data.message}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        function displayTemplates() {
+            const container = document.getElementById('templatesList');
+            container.innerHTML = '';
+            
+            templates.forEach(template => {
+                const div = document.createElement('div');
+                div.className = 'template-item';
+                div.innerHTML = `
+                    <h4>${template.name}</h4>
+                    <div class="info">
+                        📱 Канал: ${template.channel}<br>
+                        📝 Переменные: ${template.variables.join(', ')}<br>
+                        📊 Статус: ${template.status}
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; background: #f3f4f6; padding: 10px; border-radius: 3px;">
+                        ${template.body.substring(0, 100)}...
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateTemplateSelect() {
+            const select = document.getElementById('templateSelect');
+            select.innerHTML = '<option value="">Выбери шаблон</option>';
+            
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = template.name;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadConsents() {
+            const resultDiv = document.getElementById('consentsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Загружаем согласия...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/demo/consents`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    consents = data.consents;
+                    displayConsents();
+                    resultDiv.textContent = `✅ Загружено ${consents.length} согласий`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Ошибка: ${data.message}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        function displayConsents() {
+            const container = document.getElementById('consentsList');
+            container.innerHTML = '';
+            
+            consents.forEach(consent => {
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                div.innerHTML = `
+                    <h4>Согласие ${consent.id}</h4>
+                    <div class="info">
+                        📱 Канал: ${consent.channel}<br>
+                        📋 Область: ${consent.scope}<br>
+                        📝 Источник: ${consent.source}<br>
+                        📅 Дата: ${new Date(consent.createdAt).toLocaleDateString()}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function sendRealMessage() {
+            const chatId = document.getElementById('realChatId').value;
+            const message = document.getElementById('realMessage').value;
+            const resultDiv = document.getElementById('realMessageResult');
+            
+            if (!botToken) {
+                resultDiv.textContent = '❌ Сначала настройте бота';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            if (!chatId || !message) {
+                resultDiv.textContent = '❌ Введите Chat ID и сообщение';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Отправляем сообщение...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/demo/telegram/send-real`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        botToken: botToken,
+                        chatId: chatId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function renderTemplate() {
+            const templateId = document.getElementById('templateSelect').value;
+            const variablesText = document.getElementById('templateVariables').value;
+            const resultDiv = document.getElementById('renderResult');
+            
+            if (!templateId) {
+                resultDiv.textContent = '❌ Выберите шаблон';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            let variables = {};
+            try {
+                variables = JSON.parse(variablesText || '{}');
+            } catch (e) {
+                resultDiv.textContent = '❌ Неверный формат JSON в переменных';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Рендерим шаблон...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                const response = await fetch(`${API_BASE}/demo/templates/${templateId}/render`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(variables)
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.className = data.success ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function createCampaign() {
+            const templateId = document.getElementById('campaignTemplate').value;
+            const resultDiv = document.getElementById('campaignResult');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Создаем кампанию...';
+            resultDiv.className = 'result loading';
+            
+            try {
+                // Симуляция создания кампании
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const campaign = {
+                    id: 'campaign_' + Date.now(),
+                    name: 'Тестовая кампания',
+                    templateId: templateId,
+                    status: 'SCHEDULED',
+                    targetContacts: contacts.length,
+                    estimatedDelivery: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    createdAt: new Date().toISOString(),
+                };
+                
+                resultDiv.textContent = `✅ Кампания создана!\n\n${JSON.stringify(campaign, null, 2)}`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = `❌ Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Автоматически загружаем демо данные при загрузке страницы
+        window.onload = function() {
+            loadContacts();
+            loadTemplates();
+            loadConsents();
+        };
+    </script>
+</body>
+</html>
